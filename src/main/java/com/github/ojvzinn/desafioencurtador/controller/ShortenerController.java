@@ -18,7 +18,7 @@ public class ShortenerController {
     private ShortenerService shortenerService;
 
     @GetMapping("/{shortenerLink}")
-    public ResponseEntity<Void> getLinkByShortener(@PathVariable String shortenerLink, HttpServletResponse response) {
+    public ResponseEntity<Void> getLinkByShortener(@PathVariable String shortenerLink) {
         ShortenerEntity shortener = shortenerService.findByShortLink(shortenerLink);
         if (shortener == null) {
             return ResponseEntity.notFound().build();
@@ -36,6 +36,10 @@ public class ShortenerController {
 
     @PostMapping("/create")
     public ResponseEntity<String> createShortener(@RequestBody @Valid ShortenerDTO shortenerDTO) {
+        if (!shortenerDTO.getOriginalLink().startsWith("http://") && !shortenerDTO.getOriginalLink().startsWith("https://")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid link format");
+        }
+
         shortenerService.createShortener(shortenerDTO);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
