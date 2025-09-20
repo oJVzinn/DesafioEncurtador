@@ -8,9 +8,11 @@ import com.github.ojvzinn.desafioencurtador.repository.ShortenerRepository;
 import com.github.ojvzinn.desafioencurtador.utils.RandomUtils;
 import com.github.ojvzinn.sqlannotation.SQLAnnotation;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -24,6 +26,7 @@ public class ShortenerService {
         shortenerEntity.setShortLink(getRandomCode());
         shortenerEntity.setOriginalLink(shortenerDTO.getOriginalLink());
         shortenerEntity.setTotalLife(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(shortenerDTO.getSecondsLife()));
+        shortenerEntity.setTotalClicks(0L);
         repository.save(shortenerEntity);
     }
 
@@ -46,16 +49,35 @@ public class ShortenerService {
         return shortenerEntity;
     }
 
+    public void addClick(ShortenerEntity shortenerEntity) {
+        shortenerEntity.setTotalClicks(shortenerEntity.getTotalClicks() + 1);
+        if (cache.getIfPresent(shortenerEntity.getShortLink()) != null) {
+            cache.put(shortenerEntity.getShortLink(), shortenerEntity);
+            return;
+        }
+
+        repository.save(shortenerEntity);
+    }
+
     public JSONArray listAll() {
-        return repository.findAll();
+        Set<ShortenerEntity> response = new HashSet<>(cache.asMap().values());
+        repository.findAll().forEach(shortener -> {
+            JSONObject info = (JSONObject) shortener;
+            ShortenerEntity shortenerEntity = new ShortenerEntity();
+            shortenerEntity.setId(info.getLong("id"));
+            shortenerEntity.setShortLink(info.getString("shortLink"));
+            shortenerEntity.setOriginalLink(info.getString("originalLink"));
+            shortenerEntity.setTotalLife(info.getLong("totalLife"));
+            shortenerEntity.setTotalClicks(info.getLong("totalClicks"));
+            response.add(shortenerEntity);
+        });
+
+        return new JSONArray(response);
     }
 
     private String getRandomCode() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 10; i++) {
-            sb.append(RandomUtils.generateRandom());
-        }
-
+        for (int i = 0; i < 10; i++) sb.append(RandomUtils.generateRandom());
         return sb.toString();
     }
 

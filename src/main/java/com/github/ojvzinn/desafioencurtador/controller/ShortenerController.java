@@ -24,6 +24,7 @@ public class ShortenerController {
             return ResponseEntity.notFound().build();
         }
 
+        shortenerService.addClick(shortener);
         return ResponseEntity.status(HttpStatus.FOUND).header("Location", shortener.getOriginalLink()).build();
     }
 

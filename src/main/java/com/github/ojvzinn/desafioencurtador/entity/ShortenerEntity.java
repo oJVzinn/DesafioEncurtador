@@ -22,6 +22,9 @@ public class ShortenerEntity {
     private String shortLink;
 
     @Column
+    private Long totalClicks;
+
+    @Column
     private Long totalLife;
 
     public boolean isAlive() {
